@@ -1,67 +1,66 @@
-# ==============================================================================
+==============================================================================
 # IHE Recipients of USAID Grants and Contracts (USAspending.gov API and R)
-# ==============================================================================
-#
-# DESCRIPTION
-# -------
-# Script uses keyword searches and manual category assignment (Institution of 
-# higher education, or related to IHE - Y/N) to identify active grants and contracts 
-# potentially at risk of termination due to USAID shuttering. 
-#
-#
-#
-# MECHANICS
-# ------------
-# This script runs in two cycles ... or "rounds," controlled by the ROUND variable:
-#
-# -- ROUND 1
-#
-# - Downloads all USAID award transactions from the bulk download API.
-# 
-# - Creates a pivot table of one record/row per award that were active as of 
-# ACTIVE_DATE (March 11, 2025), harvests results, and saves them in a cache.
-# 
-# - Two CSVs are produced for review, 
-# ... table1.csv: Catalogs positive "hits" on IHE-relatd keyword searches ("universit", "college", etc.).
-# Manual IHE assignment/confirmation undertaken in blank "IHE" column/field, 
-# eliminating false positives (UNIVERSal Tire, COLLEGE Movers) by classifying with "N" notation.
-# 
-# ... table2.csv: Catalogs False negatives "hits" on keyword searches. 
-# Manual IHE assignment/confirmation undertaken in blank "IHE" column/field,
-# re-classifying IHE-related "false negative" recipients (Texas A&M AgriLife, Research", "The Administrators
-# of Tulane Educational Fund) with a "Y" notation in the blank "IHE" column/field.
-#
-# -- ROUND 2
-# 
-# - Incorporates notation logic from Round 1's Table 1 and Table 2
-# - Produces a final publishable product in Round 2's Table 1
-#
-#
-#
-#
-#
+==============================================================================
+
+ DESCRIPTION
+-------
+Script uses keyword searches and manual category assignment (Institution of 
+higher education, or related to IHE - Y/N) to identify active grants and contracts 
+potentially at risk of termination due to USAID shuttering. 
+
+
+
+## MECHANICS
+
+This script runs in two cycles ... or "rounds," controlled by the ROUND variable:
+
+## -- ROUND 1
+
+- Downloads all USAID award transactions from the bulk download API.
+
+- Creates a pivot table of one record/row per award that were active as of 
+ACTIVE_DATE (March 11, 2025), harvests results, and saves them in a cache.
+
+- Two CSVs are produced for review, 
+... table1.csv: Catalogs positive "hits" on IHE-related keyword searches ("universit", "college", etc.).
+Manual IHE assignment/confirmation undertaken in blank "IHE" column/field, 
+eliminating false positives (UNIVERSal Tire, COLLEGE Movers) by classifying with "N" notation.
+
+... table2.csv: Catalogs False negatives "hits" on keyword searches. 
+Manual IHE assignment/confirmation undertaken in blank "IHE" column/field,
+re-classifying IHE-related "false negative" recipients (Texas A&M AgriLife Research", "The Administrators
+of Tulane Educational Fund) with a "Y" notation in the blank "IHE" column/field.
+
+## -- ROUND 2
+
+- Incorporates notation logic from Round 1's Table 1 and Table 2
+- Produces a final publishable product in Round 2's Table 1
+
+
+
+
 # !!! IMPORTANT !!!
-# ---------------
-# Regarding FORCE_REFRESH ...
-# - Set FORCE_REFRESH to TRUE > Re-download from the API
-# - Set FORCE_REFRESH to FALSE > After successful download, use/reuse cached data
 #
-# - USAspending.gov's bulk download API limits pulls to max oof 365 per request.
-# 
-# - Rather than single request, Script undertakes 11 requests of 365-day periods. 
+Regarding FORCE_REFRESH ...
+- Set FORCE_REFRESH to TRUE > Re-download from the API
+- Set FORCE_REFRESH to FALSE > After successful download, use/reuse cached data
+
+- USAspending.gov's bulk download API limits pulls to max oof 365 per request.
+
+- Rather than a single request, the script undertakes 11 requests pulling 365-days of data. 
  
-# - To reduce API runs, successfully harvested 365-day chunks saved as 
-# "partial caches" (_partial_*.rds). When/if script re-reun, script will skip already-downloaded
-# "partial caches."
-# 
-# - If script runs successfully during 1st "ROUND" and "Y/N" classifiers are table1.csv and table2.csv
-# input into the "IHE" field/column of both CSVs, then ...
-#
-# ... change "ROUND" in "Round-Setting and Re-Downloader" Section below to ROUND to "2" and re-run the script. 
-# If you don't want to redownload bulk downloads (and instead use cache file), set FORCE_REFRESH as FALSE.
-#
-# - May need to run code during off-peak hours, or close out of R Studio completely if problem 
-# persists with API pulls
+- To reduce API runs, successfully harvested 365-day chunks saved as 
+"partial caches" (_partial_*.rds). When/if script re-reun, script will skip already-downloaded
+"partial caches."
+
+- If script runs successfully during 1st "ROUND" and "Y/N" classifiers are table1.csv and table2.csv
+input into the "IHE" field/column of both CSVs, then ...
+
+... change "ROUND" in "Round-Setting and Re-Downloader" Section below to ROUND to "2" and re-run the script. 
+If you don't want to redownload bulk downloads (and instead use a cache file), set FORCE_REFRESH to FALSE.
+
+- May need to run code during off-peak hours, or close out of R Studio completely if problem 
+persists with API pulls
 
 
 
@@ -280,6 +279,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
   
 # -- Bulk Download ZIP
 # -- Delay overheating CDN
+
   Sys.sleep(20)
   
   zip_path <- file.path(temp_dir, file_name)
@@ -347,11 +347,11 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
 
 
 
-# -- CSV Column Standardiztion
+# -- CSV Column Standardization
 
 # Script to eventually combine assistance and contract records into one file. 
 
-# The assistance and contract bulk downloads rely on different field schema.
+# The assistance and contract bulk downloads rely on different field schemas.
 
 
 
@@ -542,8 +542,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
 
 
 
-# -- Collapse transactions to one record/row per award, 
-# ignore transaction modification/action records
+# -- Collapse transactions to one record/row per award, ignore transaction modification/action records
 
 
 
@@ -625,22 +624,6 @@ awards_active <- awards_active |>
   mutate(
     generated_unique_award_id = str_replace(generated_unique_award_id, "_072$", "_7200")
   )
-
-
-
-#if (!"recipient_city_name" %in% names(awards_active)) {
-#  extract_col <- function(df, pattern) {
-#    col <- grep(pattern, names(df), value = TRUE, perl = TRUE)
-#    if (length(col) >= 1) df[[col[1]]] else rep(NA_character_, nrow(df))
-#  }
-#  awards_active$recipient_city_name    <- extract_col(awards_active, "Recipient.*city_name")
-#  awards_active$recipient_state_code   <- extract_col(awards_active, "Recipient.*state_code")
-#  awards_active$primary_place_of_performance_country_name <- extract_col(awards_active, "Performance.*country_name")
-#
-#  awards_active$naics_code  <- extract_col(awards_active, "NAICS.*code")
-#  awards_active$naics_description  <- extract_col(awards_active, "NAICS.*desc")
-#}
-
 
 
 
@@ -763,7 +746,7 @@ if (ROUND == 2) {
 
 
 
-  # -- False positives: keyword-matched recipients the reviewer flagged as non-IHE
+# -- False positives: keyword-matched recipients the reviewer flagged as non-IHE
 
   exclude_ueis <- r1_table1 |>
     filter(toupper(IHE) == "N") |>
@@ -773,7 +756,7 @@ if (ROUND == 2) {
 
 
 
-  # -- Manually added IHEs: non-keyword recipients the reviewer flagged as IHE
+# -- Manually added IHEs: non-keyword recipients the reviewer flagged as IHE
 
   manual_ueis <- r1_table2 |>
     filter(toupper(IHE) == "Y") |>
