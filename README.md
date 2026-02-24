@@ -59,34 +59,36 @@ input into the "IHE" field/column of both CSVs, then ...
 ... change "ROUND" in "Round-Setting and Re-Downloader" Section below to ROUND to "2" and re-run the script. 
 If you don't want to redownload bulk downloads (and instead use a cache file), set FORCE_REFRESH to FALSE.
 
-- May need to run code during off-peak hours, or close out of R Studio completely if problem 
+- May need to run code during off-peak hours, or close out of R Studio completely if the problem 
 persists with API pulls
 
 
 
 
 
-
+```   
 library(httr)
 library(jsonlite)
 library(tidyverse, warn.conflicts = FALSE)
 library(stringr)
 library(readxl)
-
+```   
 
 
 
 # -- Round-Setting and Redownloader
 
+```   
 ROUND <- 1
 
 FORCE_REFRESH  <- TRUE  # TRUE = re-download from API // FALSE = use cache
-
+```   
 
 
 
 # -- Algebra
 
+```   
 BULK_DL_URL    <- "https://api.usaspending.gov/api/v2/bulk_download/awards/"
 DL_STATUS_URL  <- "https://api.usaspending.gov/api/v2/download/status"
 
@@ -101,13 +103,14 @@ setwd(working_directory)
 
 ASST_TYPES     <- c("02", "03", "04", "05", "06", "10", "11")  # Grants & financial assistance
 CONT_TYPES     <- c("A", "B", "C", "D")                        # Contracts
-
+```   
 
 
 
 
 # -- Keyword-Setting and "Number-Writing" to CSV
 
+```   
 IHE_KEYWORDS <- regex(
   str_c(
     "univ",
@@ -137,7 +140,7 @@ IHE_KEYWORDS <- regex(
 
 
 options(scipen = 999)
-
+```   
 
 
 
@@ -145,7 +148,7 @@ options(scipen = 999)
 
 # -- Bulk Downloader
 
-
+```   
 make_year_chunks <- function(start_date = "2015-01-01",
                              end_date   = "2025-03-11") {
   
@@ -230,7 +233,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
   
   
   dl_info <- fromJSON(content(resp, "text", encoding = "UTF-8"))
-  
+```     
   
   
   
@@ -238,7 +241,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
   
 # -- Wait (max: 10 min)
   
-  
+```     
   file_name <- dl_info$file_name
   status <- list(status = "running")
   
@@ -272,7 +275,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
     cat(sprintf("    !!! TIMED OUT: %s to %s\n", start_date, end_date))
     return(list())
   }
-  
+```     
   
   
   
@@ -280,6 +283,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
 # -- Bulk Download ZIP
 # -- Delay overheating CDN
 
+```   
   Sys.sleep(20)
   
   zip_path <- file.path(temp_dir, file_name)
@@ -310,11 +314,12 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
     if (file.exists(zip_path)) file.remove(zip_path)
     return(list())
   }
-  
+```    
   
   
 # -- Unzip, Target, Extract CSVs
-  
+
+```   
   csv_files <- unzip(zip_path, exdir = temp_dir)
   
   
@@ -342,7 +347,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
   
   result
 }
-
+```   
 
 
 
@@ -357,6 +362,7 @@ fetch_bulk_chunk <- function(start_date, end_date, award_types, temp_dir) {
 
 # ... Assistance
 
+```   
 standardize_assistance <- function(df) {
   if (is.null(df) || nrow(df) == 0) return(tibble())
   
@@ -384,13 +390,14 @@ standardize_assistance <- function(df) {
       naics_description   = NA_character_
     )
 }
-
+```   
 
 
 
 
 # ... Contracts
 
+```   
 standardize_contracts <- function(df) {
   if (is.null(df) || nrow(df) == 0) return(tibble())
   
@@ -421,7 +428,7 @@ standardize_contracts <- function(df) {
       naics_description   = naics_description
     )
 }
-
+```
 
 
 
@@ -430,6 +437,7 @@ standardize_contracts <- function(df) {
 
 # -- Encoding Prep (Fix garbled unicode)
 
+```
 clean_text <- function(x) {
   x |>
     str_replace_all("\u201C|\u201D", '"') |>
@@ -439,7 +447,7 @@ clean_text <- function(x) {
     str_replace_all("\u2026",      "...") |>
     str_replace_all("\u00A0",        " ")
 }
-
+```
 
 
 
@@ -449,6 +457,7 @@ clean_text <- function(x) {
 
 # WebFetch and Bulk Downloads (If FORCE_REFRESH=TRUE and No Cache) 
 
+```
 if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
   
   awards_active <- readRDS(CACHE_FILE)
@@ -461,7 +470,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
   
   all_assistance <- tibble()
   all_contracts  <- tibble()
-  
+```
   
   
   
@@ -469,6 +478,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
   
 # -- Fetch assistance awards (in 365-day "chunks")
 
+```
   for (i in seq_along(chunks)) {
     chunk <- chunks[[i]]
     partial_file <- sprintf("_partial_asst_%02d.rds", i)
@@ -490,7 +500,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
     if (!is.null(result$assistance))
       all_assistance <- bind_rows(all_assistance, result$assistance)
   }
-
+```
 
 
 
@@ -498,7 +508,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
 
 # -- Fetch contract awards
 
-
+```
   for (i in seq_along(chunks)) {
     chunk <- chunks[[i]]
     partial_file <- sprintf("_partial_cont_%02d.rds", i)
@@ -523,20 +533,21 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
   
   elapsed <- round(difftime(Sys.time(), t0, units = "mins"), 1)
   cat(sprintf("Bulk download completed in %s minutes.\n\n", elapsed))
-
+```
 
 
 
 
 
 # -- Standardize columns
-  
+
+```
   grants    <- standardize_assistance(all_assistance)
   
   contracts <- standardize_contracts(all_contracts)
   
   awards_all <- bind_rows(grants, contracts)
-  
+```
   
   
 
@@ -544,10 +555,7 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
 
 # -- Collapse transactions to one record/row per award, ignore transaction modification/action records
 
-
-
-
-
+```
   awards_all <- awards_all |>
     group_by(generated_unique_award_id) |>
     summarise(
@@ -573,13 +581,14 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
       naics_description   = first(na.omit(naics_description)),
       .groups          = "drop"
     )
-  
+```  
   
   
   
   
 # -- Testing Whether Award was "Active" On "ACTIVE_DATE"
 
+```
   awards_active <- awards_all |>
     mutate(start_dt = as.Date(period_of_performance_start_date),
            end_dt   = as.Date(period_of_performance_end_date)) |>
@@ -587,19 +596,20 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
            start_dt <= ACTIVE_DATE,
            end_dt   >= ACTIVE_DATE) |>
     mutate(
-      
+```      
 
 
 
 # -- Fix ASST issue >> API returns _072 (toptier) vs. reference uses _7200 (subtier)
-      
+
+```
       generated_unique_award_id = str_replace(generated_unique_award_id, "_072$", "_7200")
     )
   
   
   
   saveRDS(awards_active, CACHE_FILE)
-
+```
 
 
 
@@ -607,12 +617,13 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
 
   # -- Merge and zip together partial caches ... 
 
+```
   partial_files <- list.files(pattern = "^_partial_(asst|cont)_\\d+\\.rds$")
   if (length(partial_files) > 0) {
     file.remove(partial_files)
   }
 }
-
+```
 
 
 
@@ -620,10 +631,12 @@ if (!FORCE_REFRESH && file.exists(CACHE_FILE)) {
 
 # -- Ensure suffix normalization is applied even when loading from cache
 
+```
 awards_active <- awards_active |>
   mutate(
     generated_unique_award_id = str_replace(generated_unique_award_id, "_072$", "_7200")
   )
+```
 
 
 
@@ -631,6 +644,7 @@ awards_active <- awards_active |>
 
 # -- Keyword Matching and Summarizing
 
+```
 recipients <- awards_active |>
   group_by(recipient_uei, recipient_name) |>
   summarise(
@@ -649,17 +663,18 @@ recipients <- awards_active |>
                     str_detect(replace_na(recipient_parent_name, ""), IHE_KEYWORDS),
     naics_6113    = str_detect(naics_codes, "^6113|; 6113")
   )
-
+```
 
 
 
 
 # -- Collect both recipient UEIs and parent UEIs of keyword-matched recipients
 
+```
 keyword_ueis <- recipients |>
   filter(keyword_match) |>
   { \(d) unique(c(d$recipient_uei, na.omit(d$recipient_parent_uei))) }()
-
+```
 
 
 
@@ -667,10 +682,11 @@ keyword_ueis <- recipients |>
 
 # -- ROUND 1
 
+```
 if (ROUND == 1) {
 
   dir.create("round_1", showWarnings = FALSE)
-
+```
 
 
 
@@ -678,6 +694,7 @@ if (ROUND == 1) {
 
 # -- Table 1: Keyword-matched awards (review for false positives)
 
+```
   table1 <- awards_active |>
     filter(recipient_uei %in% keyword_ueis |
            recipient_parent_uei %in% keyword_ueis) |>
@@ -699,13 +716,14 @@ if (ROUND == 1) {
       generated_unique_award_id  = generated_unique_award_id,
       award_type                 = award_type
     )
-
+```
 
 
 
 
 # -- Table 2: Non-keyword recipients (review for missed IHEs)
 
+```
   table2 <- recipients |>
     filter(!keyword_match) |>
     transmute(
@@ -727,7 +745,7 @@ if (ROUND == 1) {
   write_excel_csv(table2, "round_1/table2.csv")
   
 }
-
+```
 
 
 
@@ -736,46 +754,51 @@ if (ROUND == 1) {
 
 # -- ROUND 2
 
+```
 if (ROUND == 2) {
 
   dir.create("round_2", showWarnings = FALSE)
 
   r1_table1 <- read_csv("round_1/table1.csv", show_col_types = FALSE)
   r1_table2 <- read_csv("round_1/table2.csv", show_col_types = FALSE)
-
+```
 
 
 
 # -- False positives: keyword-matched recipients the reviewer flagged as non-IHE
 
+```
   exclude_ueis <- r1_table1 |>
     filter(toupper(IHE) == "N") |>
     { \(d) unique(c(d$recipient_uei, na.omit(d$recipient_parent_uei))) }()
-
+```
 
 
 
 
 # -- Manually added IHEs: non-keyword recipients the reviewer flagged as IHE
 
+```
   manual_ueis <- r1_table2 |>
     filter(toupper(IHE) == "Y") |>
     { \(d) unique(c(d$recipient_uei, na.omit(d$recipient_parent_uei))) }()
-
+```
 
 
 
 
 # -- Combine: all keyword + manual IHEs, minus false positives
 
+```
   final_ueis <- setdiff(unique(c(keyword_ueis, manual_ueis)), exclude_ueis)
-
+```
 
 
 
 
 # -- Build the final award-level table for manually confirmed IHE recipients
 
+```
   table1 <- awards_active |>
     filter(recipient_uei %in% final_ueis |
            recipient_parent_uei %in% final_ueis) |>
@@ -803,3 +826,4 @@ if (ROUND == 2) {
   write_excel_csv(table1, "round_2/table1.csv")
   
 }
+```
